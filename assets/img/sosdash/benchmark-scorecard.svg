@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 560" font-family="'Segoe UI', system-ui, -apple-system, sans-serif">
+  <rect x="10" y="10" width="800" height="540" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5"/>
+
+  <!-- Title -->
+  <text x="40" y="52" font-size="23" font-weight="700" fill="#0f172a">SOSDash vs. a same-LLM baseline</text>
+  <text x="40" y="78" font-size="13" fill="#64748b">6 frozen questions &#215; 3 repeats = 36 runs, scored against an independent Elasticsearch oracle</text>
+
+  <!-- Legend -->
+  <rect x="560" y="40" width="14" height="14" rx="3" fill="#2563eb"/>
+  <text x="580" y="52" font-size="13" font-weight="600" fill="#334155">SOSDash</text>
+  <rect x="668" y="40" width="14" height="14" rx="3" fill="#cbd5e1"/>
+  <text x="688" y="52" font-size="13" font-weight="600" fill="#334155">Baseline</text>
+
+  <!-- ================= Row 1: Accuracy ================= -->
+  <text x="40" y="130" font-size="15" font-weight="600" fill="#0f172a">Answer accuracy</text>
+  <text x="40" y="148" font-size="11" fill="#16a34a">&#9650; higher is better</text>
+  <rect x="255" y="114" width="470" height="18" rx="4" fill="#2563eb"/>
+  <text x="717" y="127" font-size="12" font-weight="700" fill="#ffffff" text-anchor="end">100%</text>
+  <rect x="255" y="138" width="390" height="18" rx="4" fill="#cbd5e1"/>
+  <text x="653" y="151" font-size="12" font-weight="600" fill="#475569">83%</text>
+
+  <!-- ================= Row 2: Citations ================= -->
+  <text x="40" y="204" font-size="15" font-weight="600" fill="#0f172a">Verifiable citations</text>
+  <text x="40" y="222" font-size="11" fill="#16a34a">&#9650; higher is better</text>
+  <rect x="255" y="188" width="470" height="18" rx="4" fill="#2563eb"/>
+  <text x="717" y="201" font-size="12" font-weight="700" fill="#ffffff" text-anchor="end">100% (6/6)</text>
+  <rect x="255" y="212" width="4" height="18" rx="2" fill="#cbd5e1"/>
+  <text x="267" y="225" font-size="12" font-weight="600" fill="#475569">0% (0/6) &#8212; 5 fabricated</text>
+
+  <!-- ================= Row 3: Hallucination ================= -->
+  <text x="40" y="278" font-size="15" font-weight="600" fill="#0f172a">Unsupported-claim rate</text>
+  <text x="40" y="296" font-size="11" fill="#ea580c">&#9660; lower is better</text>
+  <rect x="255" y="262" width="4" height="18" rx="2" fill="#2563eb"/>
+  <text x="267" y="275" font-size="12" font-weight="700" fill="#475569">0%</text>
+  <rect x="255" y="286" width="470" height="18" rx="4" fill="#cbd5e1"/>
+  <text x="717" y="299" font-size="12" font-weight="600" fill="#475569" text-anchor="end">44%</text>
+
+  <!-- ================= Row 4: Latency ================= -->
+  <text x="40" y="352" font-size="15" font-weight="600" fill="#0f172a">Latency per query</text>
+  <text x="40" y="370" font-size="11" fill="#ea580c">&#9660; lower is better</text>
+  <rect x="255" y="336" width="256" height="18" rx="4" fill="#2563eb"/>
+  <text x="503" y="349" font-size="12" font-weight="700" fill="#ffffff" text-anchor="end">78 s</text>
+  <rect x="255" y="360" width="470" height="18" rx="4" fill="#cbd5e1"/>
+  <text x="717" y="373" font-size="12" font-weight="600" fill="#475569" text-anchor="end">143 s</text>
+
+  <!-- ================= Row 5: Energy ================= -->
+  <text x="40" y="426" font-size="15" font-weight="600" fill="#0f172a">Energy per query</text>
+  <text x="40" y="444" font-size="11" fill="#ea580c">&#9660; lower is better</text>
+  <rect x="255" y="410" width="316" height="18" rx="4" fill="#2563eb"/>
+  <text x="563" y="423" font-size="12" font-weight="700" fill="#ffffff" text-anchor="end">3.89 mWh</text>
+  <rect x="255" y="434" width="470" height="18" rx="4" fill="#cbd5e1"/>
+  <text x="717" y="447" font-size="12" font-weight="600" fill="#475569" text-anchor="end">5.79 mWh</text>
+
+  <!-- Footnote -->
+  <line x1="40" y1="486" x2="780" y2="486" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="40" y="510" font-size="11.5" font-style="italic" fill="#94a3b8">Same LLM (qwq:32b) and temperature for both arms &#8212; the only variable is the retrieval-grounded architecture.</text>
+  <text x="40" y="530" font-size="11.5" font-style="italic" fill="#94a3b8">SOSDash is faster and lower-energy because it offloads computation to Elasticsearch instead of generating expensive output tokens.</text>
+</svg>

@@ -1,153 +1,167 @@
 ---
 layout: post
-title: "SOSDash: Designing a Trustworthy Conversational Analytics Dashboard"
+title: "SOSDash: an AI analytics agent that proves every number it gives you"
 date: 2026-06-27 09:00:00 +0000
-categories: [research, architecture]
-tags: [agentic-ai, explainability, trustworthy-ai, architecture]
-summary: "A blog-style architecture walkthrough for SOSDash, a research prototype that combines metadata discovery, evidence grounding, and conversational analytics."
+categories: [projects, ai-engineering]
+tags: [agentic-ai, rag, llm, elasticsearch, data-engineering, evaluation, trustworthy-ai]
+pin: true
+image:
+  path: /assets/img/sosdash/architecture.png
+  alt: "SOSDash architecture — a ReAct LLM agent over a metadata catalog and Elasticsearch retrieval, returning grounded answers with cited evidence."
+summary: "A conversational analytics agent for large statistical datasets: ask in plain English, get a chart-ready answer with a verifiable citation for every number. The LLM never sees raw data; it works from a metadata contract and retrieves grounded values and evidence from Elasticsearch, so the system stays scalable, data-sovereign, and auditable."
 ---
 
-Early in the SOSDash research project, the core design problem became clear: food-system stakeholders need dashboards that can answer natural-language questions, but the answers must not feel like plausible fiction. In practice, that meant the system had to do three things at once:
+> **TL;DR** — For my master's thesis I built **SOSDash**, an LLM agent that turns a plain-English question into a chart-ready answer *with a verifiable citation for every number*. The trick is that the model never touches your data: it reasons over a compact **metadata contract**, then retrieves grounded values and policy evidence from **Elasticsearch**. That one decision is what keeps the system **scalable, data-sovereign, and auditable** in ways a context-stuffing chatbot can't be. Validated against an independent oracle, it answered **every benchmark question correctly**, with a **verifiable, page-referenced source** behind every number.
+>
+> 🚀 [**Live demo**](https://sustaindatachat.app.citius.gal/) &nbsp;·&nbsp; 💻 [**Source code**](https://github.com/sam-a-d/se4gd-sosdash) *(private for now — available on request)* &nbsp;·&nbsp; 📄 [**Sample output (PDF)**](/assets/files/sosdash-sample-output.pdf)
 
-1. discover which dataset holds the answer,
-2. retrieve grounded evidence from that dataset and related policy documents,
-3. return a concise analytics result with a chart-ready structure and a transparent provenance trail.
+![Built with: Python, Elasticsearch, LangChain, Streamlit, Docker and Ollama — plus RAG, LLM agents, ETL pipelines and evaluation](/assets/img/sosdash/built-with.png){: width="820" }
 
-This post walks through the architecture behind that design, explains the reasoning that guided it, and shows how the prototype turns a query into a verified, evidence-backed response.
+## The problem it solves
 
-## What SOSDash actually delivers
+Organisations sit on rich statistical data and still can't *use* it to answer a plain question. Three failures stack up:
 
-SOSDash is designed for people who need answers they can trust, not just interesting prose. It takes a question like "What happened to pesticide use in Spain between 2015 and 2020?" and delivers:
+- **Dashboards show numbers, not meaning.** You watch a line go down, but the tool can't tell you *why*. The explanation lives in policy PDFs and methodology notes nobody reads.
+- **The data is fragmented.** A real question (*"does barley yield track pesticide use in this country?"*) spans several datasets that don't share a schema, so answering it means manual joins in a spreadsheet.
+- **LLM chatbots hallucinate.** Bolt a chatbot on and it explains fluently, but it will invent a plausible statistic or quote a policy document that doesn't exist.
 
-- a chart-ready analytics result,
-- the exact dataset that provided the numbers,
-- an explanation grounded in methodology and policy evidence,
-- and a transparent path showing how the answer was assembled.
+For a policy analyst deciding where to put a budget, a confident wrong number, or a fabricated citation, is worse than no answer at all.
 
-That means the system is not only faster than manual dashboard exploration; it is also safer for decision-making. When the application is food-system analytics, numbers without context can mislead. SOSDash reduces that risk by making both the data and the evidence explicit.
+**SOSDash closes the gap.** Ask a question in plain English and it:
 
-## The architecture in one sentence
+- finds the right dataset and returns the numbers as a **chart-ready answer**,
+- **joins across datasets automatically** when the question spans more than one,
+- and pairs every quantitative claim with **verifiable evidence**: a real passage from a real document, with its page.
 
-SOSDash is a layered retrieval agent: a user query first hits a metadata catalog, then a query plan is constructed, the data source is identified, and the final answer is composed from structured dataset responses plus policy-backed explanations.
+The domain here was EU food-system statistics (FAO data + EU policy documents), but the architecture is domain-agnostic. Point it at any registered dataset and it works unchanged.
 
-## What makes SOSDash different
+## How it works
 
-A few design choices from the source repository deserve to be highlighted:
+SOSDash is a layered retrieval agent. A question never goes straight to the data. The agent first discovers *which* dataset can answer it, then dispatches a structured query, then grounds any explanation in retrieved policy text.
 
-- The system is dataset-agnostic. Any dataset that conforms to the metadata contract can be registered without code changes.
-- The agent never queries datasets directly. It discovers a dataset through the metadata layer first, then dispatches a structured fetch request to the named index.
-- Evidence is multi-dimensional: the system retrieves not only numbers, but also methodology/context text and policy citations.
-- The conversational layer is JSON-mode ReAct. The LLM emits structured tool calls and final answers, which makes the loop far more robust than free-form prompt parsing.
+![SOSDash architecture: query → ReAct orchestrator → tool layer → Elasticsearch (L1 metadata, data indexes, L2 methodology, L3 policy) → verified answer](/assets/img/sosdash/architecture.png){: width="860" }
 
-## The architecture stack
+### The metadata contract
 
-At the heart of SOSDash is a four-layer search stack.
+The agent's entire knowledge of a dataset is one machine-readable entry: the spatial / temporal / thematic *anchor* columns, the metrics, required filters, a hierarchy guard, and a pointer to methodology. It reasons over that contract and issues queries the system runs on its behalf. It never reads the rows themselves. (Why that single decision matters so much is the [next section](#scalable-sovereign-verifiable).)
 
-- **L1: Metadata Catalog** — this is the dataset discovery layer. Each registered dataset is described by its anchors, filters, metrics, and provenance pointer. The agent uses this layer to decide which dataset to query.
-- **L2: Methodology Vectors** — this layer stores chunks of methodology and data-quality notes as embeddings. When the agent needs to explain a definition or caveat, it can retrieve the relevant text.
-- **L3: Policy Vectors** — this layer holds policy document excerpts, also as embeddings. It is the source of evidence when the answer needs a citation from Farm-to-Fork or similar documents.
-- **Data indexes** — each dataset gets its own Elasticsearch index for raw observation records. The agent issues structured queries against one dataset index at a time.
+### The agent loop
 
-That structure is important. In the prototype, the orchestrator in `core/orchestrator.py` first discovers the dataset in L1, then uses the findings to build a typed `QueryPlan`, and finally executes the plan against the selected data index.
+The orchestrator runs a **JSON-mode ReAct loop** on a self-hosted **`qwq:32b`** model (32 billion parameters, served with Ollama). Each turn, the model emits one JSON object: either a tool call (`thought` / `tool` / `args`) or a final answer. There is no brittle prose-parsing. When it needs numbers, it compiles a typed **QueryPlan** (filters, range, aggregation, group-by), and the tool layer translates that into an Elasticsearch **Query DSL** request. Sums, joins, and aggregations run *in the database*, so the model spends zero tokens on arithmetic. Two safety rails are automatic and dataset-agnostic. A **required-filters** default picks the right measurement variant, and a **hierarchy guard** injects the total-row filter when aggregating, so parent and child rows never double-count. The LLM adapter is provider-agnostic, but every result reported here is from `qwq:32b`.
 
-## The metadata contract that makes dataset-agnostic discovery possible
+### Retrieval-Augmented Generation (RAG)
 
-The real innovation in SOSDash is the metadata-validated mapping (MVM). Every registered dataset has a machine-readable entry in the L1 catalog describing:
+Explanations use textbook **RAG** with one strict rule: a citation can only be a passage that was actually retrieved. Policy PDFs are chunked, embedded as 768-dimensional dense vectors (`nomic-embed-text`) and indexed in Elasticsearch. At answer time the agent runs a **k-NN similarity search** for the most relevant excerpts and renders them with their source document and page. Because the cited text is pulled from the index rather than generated, a fabricated quote simply isn't an available move. The citation is, by construction, a real passage from a real document.
 
-- the spatial, temporal, and thematic anchor columns,
-- which columns are metrics,
-- required filters for disambiguating units or row types,
-- optional hierarchy metadata to prevent double-counting,
-- a pointer to a methodology context entry.
+## Data architecture
 
-This contract is what makes the system pluggable. If a new dataset shares anchors with existing data, the agent can align them without any hard-coded schema logic. That is also why cross-dataset queries are a feasible research goal for SOSDash.
+Under the hood, SOSDash runs on a single **Elasticsearch** cluster that plays four roles at once: structured analytics, lexical discovery, and two kinds of semantic search, each fed by its own small, repeatable ingestion path. This is the write side of the system: how raw sources become queryable layers.
 
-## Query flow: from question to chart spec
+![Data architecture — CSV/metadata/PDF sources flow through ingestion scripts into four Elasticsearch layers: data indexes, L1 catalog, L2 and L3 vectors](/assets/img/sosdash/data-architecture.png){: width="860" }
 
-A typical query in SOSDash follows this flow:
+| Layer | What it holds | Populated from | Retrieval | Role |
+|---|---|---|---|---|
+| **Data indexes** | observation records, one index per dataset | FAO CSVs → `data-ingestion.py` | structured — Query DSL + aggregation | the numbers |
+| **L1 · Metadata catalog** | dataset contracts: anchors, filters, methodology pointer | metadata → `ingest-metadata-l1.py` | lexical | dataset discovery |
+| **L2 · Methodology vectors** | definitions, data-quality notes (~300 chunks) | notes → `ingest-metadata-l2.py` | dense-vector / kNN | data-literacy |
+| **L3 · Policy vectors** | policy excerpts, chunked 500/50, 768-dim (~169 chunks) | PDFs → chunk → embed (`nomic-embed-text`) | dense-vector / kNN | grounded citations |
 
-1. The user types a natural-language question in the Streamlit chat UI.
-2. The orchestrator calls `CatalogSearch` against L1 to find candidate datasets and anchor values.
-3. The LLM builds a `QueryPlan` using the metadata contract: filters, time range, aggregation, and grouping.
-4. The orchestrator calls `DataFetcher` against the selected dataset index.
-5. If the user asks for explanation, the orchestrator also retrieves methodology chunks from L2 and policy evidence from L3.
-6. The final answer is returned in one of two forms: a structured analytics object with chart fields, or a textual explanation when no data answer is available.
+Two things make this a data-engineering story rather than a schema diagram:
 
-That flow is deliberately tool-oriented. The model does not return unstructured prose and then have the system parse it. Instead, it emits JSON with explicit arguments, which eliminates a large class of hallucination bugs.
+- **One store, three retrieval modes.** Exact aggregation (Query DSL), keyword discovery, and dense-vector kNN all run against the same cluster, so a single question can pull a precise number *and* the semantic evidence that explains it, with no second system to operate.
+- **Schema-agnostic ingestion.** Each source type has its own ingestion path, and a new dataset is registered by writing one metadata (MVM) entry to L1: no migration, no re-prompt, no application-code change. The metadata contract is the only coupling between the data and the agent.
 
-## Key implementation concepts
+## Scalable, sovereign, verifiable
 
-The prototype implements a small set of conceptual components that together enforce discovery, grounding, and reproducible answers:
+A plain LLM chatbot tries to answer by *reading the data*: you paste rows into the prompt and hope they fit. That breaks the moment the data is larger than the context window, and it means the model sees everything. SOSDash inverts the relationship: the model reads *about* the data (the metadata contract), and the system fetches and computes the answer. Four properties fall out of that one decision:
 
-- Orchestrator / planner: runs a JSON-mode ReAct loop, sequences tool calls, and builds typed query plans from user intents.
-- Tool adapters: typed interfaces that translate query plans into backend queries (search, aggregation, retrieval) and return structured results.
-- System prompts and policies: a constrained instruction layer that enforces a "search-before-talk" behaviour and prevents the agent from inventing dataset names or numeric values.
-- UI renderer: a lightweight web front-end that accepts structured analytics objects (chart spec + data) and displays evidence citations alongside charts.
+- **Scalable.** Because the model never ingests the data, dataset size is decoupled from the LLM entirely. The data can grow without bound, while the agent still only reads a compact catalog and pulls the few rows it needs, aggregating them in Elasticsearch. Capacity is bounded by your database, not the model's context window. A context-stuffing chatbot is left behind the moment the data outgrows the prompt.
+- **Data-sovereign.** The LLM never sees a raw row. It operates on the metadata contract and dispatches queries the system runs; the data stays in your store. No PII or proprietary records enter the prompt: the difference between "we can run this on regulated data" and "legal says no."
+- **Verifiable.** Every number is the result of a deterministic database query, and every citation is a passage that was actually retrieved (with document and page). The derivation trace shows exactly how each figure was produced, so answers are auditable end-to-end.
+- **Pluggable.** Onboarding a dataset is a metadata entry plus an ingestion run, not a code change or a re-prompt. Datasets that share anchor values become joinable automatically, which is what makes cross-dataset questions possible at all.
 
-The deployed prototype uses Elasticsearch as the primary retrieval backend. L2 and L3 use vector search over embedded text; the data indexes use structured ES queries for filtering, aggregation, and chart production.
+## One query, traced end to end
 
-## Why the conversation is evidence-backed
+Abstract layers are easier to trust when you can watch a real question move through them. Here is the exact path *"What is the pesticide usage in Spain from 2015 onwards? Explain the trend."* takes, hop by hop, with the technology doing the work at each step:
 
-The SOSDash prototype is not just a numerical answer engine; it is a dual-channel evidence system.
+![End-to-end trace of one query through SOSDash's layers and technologies — LLM agent, Elasticsearch lexical catalog, ES Query DSL, vector/kNN policy retrieval, Streamlit render](/assets/img/sosdash/query-trace.png){: width="780" }
 
-- Data answers come from the dataset index that the metadata catalog selected.
-- Explanations can reference methodology text and policy excerpts, which are retrieved from L2 and L3.
+The agent never guesses. It discovers the right dataset by **lexical search** over the metadata catalog (L1), then compiles a typed query plan that **Elasticsearch** executes (the maths runs in the database, not the model). Finally it retrieves real policy passages by **vector (k-NN) similarity** (L3) to explain *why* the trend moved, and only then composes a single structured answer for the front-end to render.
 
-Because the policy documents are registered explicitly and chunked into the vector index, the system can cite a specific source rather than just saying "according to policy". That is the difference between a dashboard answer and a trustworthy explanation.
+For this question, that resolves to a verbatim, fully-grounded answer:
 
-## The real-world impact
+> Pesticide usage in Spain decreased from 77,217 tonnes in 2015 to 52,907 tonnes in 2023, with a notable drop starting in 2022. This aligns with the EU's 2030 target to reduce pesticide use by 50%, as outlined in the EU Biodiversity Strategy and Farm-to-Fork initiatives.
 
-For a policy analyst or food-system stakeholder, this architecture changes two things:
+Every figure in that sentence came from an Elasticsearch aggregation, and the 50%-by-2030 claim is backed by three retrieved excerpts (EU Biodiversity Strategy p.7 & p.13, Farm-to-Fork p.7), not by the model's memory.
 
-**Speed of decision-making.** Instead of manually searching a dashboard or wading through spreadsheets, users ask a natural-language question and get an answer with a chart in seconds. A question like *"Show pesticide usage in Spain from 2015 to 2020"* takes 20–40 seconds end-to-end in the prototype — retrieval, reasoning, visualization, and all. For exploratory analytics that previously required either manual lookups or context-switching between multiple tools, that is a material improvement.
+## What the user sees
 
-**Trust in the numbers.** The system returns not just a chart, but a citation path. If a user asks *"Explain the drop in pesticide use in Spain,"* they receive not only the trend visualization but also excerpts from the EU Farm-to-Fork strategy or relevant methodology notes that contextualize the change. This moves the answer from a black box ("the model said so") to a transparent claim ("here is the data, and here is the policy framing"). For stakeholders making budget or strategy decisions, that traceability is not a luxury — it is a requirement.
+The trace above is the under-the-hood view. In the product, all of it lands on a single screen. That same question produces five stacked panels, each doing a distinct job:
 
-**Cross-dataset insight without schema friction.** The metadata-driven approach means adding a new dataset (e.g., a national agricultural census) does not require retraining the agent or rewriting backend logic. Register the dataset with anchors, upload methodology notes, and the agent can immediately use it in cross-dataset queries alongside existing FAO data. For organizations that manage multiple data sources, that pluggability removes a major operational barrier to integrated analytics.
+**1. The natural-language answer.** At the top sits the grounded summary from the trace above, leading with the numbers and the *why*. Notice what's *not* there: no hedging, no invented precision. The two figures (77,217 and 52,907 tonnes) are lifted verbatim from the database, and the policy framing comes from retrieved documents. The model is summarising, not estimating.
 
-## Practical lessons from the project
+**2. The visualization.** Directly below sits a labelled line chart, *"Pesticide Usage in Spain (2015–2023)"*, with year on the x-axis and tonnes on the y-axis. It shows the shape the prose only hints at: a plateau around 75k tonnes in 2015–2016, a dip near 72k in 2017, a slow recovery to ~75k by 2021, then the sharp fall the summary calls out. This isn't a screenshot of a BI tool. The agent emitted a structured chart spec (chart type, axes, and the data array), and the front-end rendered it.
 
-### Keep the agent’s knowledge narrow
+![SOSDash grounded answer and trend chart for the Spain pesticide query](/assets/img/sosdash/ui-answer-chart.png){: width="820" .shadow }
+_Panels 1–2 in the app: the grounded natural-language answer, and the chart-ready trend the agent emitted as a spec._
 
-The agent only knows the metadata catalog and the registered indexes. It does not have free access to the raw dataset files. That constraint is what keeps the answer grounded.
+**3. "How this answer was derived" — the methodology.** An expandable panel states, in plain language, exactly which dataset answered the question and how it was filtered: the `pesticide_usage` dataset, restricted to *area = Spain*, *element = Agricultural Use*, *item = Pesticides (total)*, over *2015 onwards*, aggregated as the **sum of value grouped by year**, covering **9 records**. It also surfaces the dataset's own methodology notes (Layer 2). For instance, it notes that gaps were filled by linear interpolation, and that the figures come from the FAOSTAT Pesticides Use domain (global coverage, 1990–2023). This is the data-literacy layer: the user sees the *definition* behind the number, not just the number.
 
-### Use JSON-mode tool output
+**4. "Show exact steps" — the calculation trail.** Toggling this reveals the literal sequence of tool calls the agent made:
 
-The prototype makes the LLM emit structured actions. The result is a cleaner control flow and far fewer parsing errors when the agent calls a tool.
+1. Searched the dataset catalog for *"pesticide usage Spain"* → found 1 candidate dataset.
+2. Queried `pesticide_usage`, filtered area = Spain, 2015 onwards, grouped by year.
+3. Queried `pesticide_usage`, filtered element = Agricultural Use, area = Spain, item = Pesticides (total), 2015 onwards, **summed by year → 9 records**.
+4. Searched policy documents for *"Spain pesticide reduction policies 2022"* → 3 excerpts.
 
-### Make dataset registration explicit
+Every number in the answer is reconstructible from these steps. There is no hidden reasoning, and nothing the user has to take on faith.
 
-The upload flow is both a product feature and a design safeguard. Users upload a CSV, generate a metadata draft, review the inferred anchors, and then register it. This is where the system preserves its dataset-agnostic guarantees.
+![How this answer was derived — dataset, filters, methodology notes, and the exact tool-call steps](/assets/img/sosdash/ui-derivation.png){: width="820" .shadow }
+_Panels 3–4: the methodology (dataset, filters, sum-by-year over 9 records, FAOSTAT notes) and the exact tool-call trail._
 
-### Guard hierarchical totals automatically
+**5. Policy evidence — the citations.** Finally, the three retrieved excerpts are shown in full, each with its source document and page:
 
-Many food-system datasets contain both totals and breakdown rows. The metadata contract includes an optional hierarchy field so the system can automatically enforce a total-row filter during aggregation, preventing double-counting.
+- **EU Biodiversity Strategy, p. 7** — "…reduce by 50% the overall use of — and risk from — chemical pesticides by 2030…", the passage that backs the headline "50% by 2030" claim.
+- **Farm-to-Fork (`farm.pdf`), p. 7** — the Harmonised Risk Indicator showing a 20% decrease in pesticide risk over five years, and the commitment to cut overall use and risk by 50%.
+- **EU Biodiversity Strategy, p. 13** — the Integrated Nutrient Management Action Plan and the Farm-to-Fork reduction targets.
 
-## Reliability and benchmark design
+These are the *actual passages* the explanation was built from: quoted, not paraphrased. A sceptical reader can check the claim against the source.
 
-SOSDash was built with reliability in mind. The prototype is benchmarked against a naive baseline that simply uses the same language model without metadata discovery or evidence citation.
+![Policy evidence — three retrieved excerpts, each with source document and page](/assets/img/sosdash/ui-policy-evidence.png){: width="820" .shadow }
+_Panel 5: the three retrieved excerpts, shown verbatim with their source document and page._
 
-The benchmark focuses on the kinds of queries that matter in practice:
+Put together, that is the whole product in one view: a number, a picture, the method behind the number, the steps that produced it, and the evidence behind the explanation. Every panel above is a real screen from the live system, and the complete output is also available as a [single-page PDF](/assets/files/sosdash-sample-output.pdf).
 
-- single-dataset trend questions,
-- cross-dataset composition questions,
-- explanation questions that require policy evidence.
+The hardest query class is **cross-dataset composition** (for example, *"does barley yield in Lithuania correlate with that country's total pesticide use?"*), which requires aligning two differently-shaped datasets on shared keys. The metadata anchors turn that into a planned join rather than a guess, and it's where the layered architecture earns its keep.
 
-The evaluation measures practical outcomes: answer accuracy, citation integrity, latency, token efficiency, and energy usage. In other words, it is not just testing whether the system can respond; it is testing whether the response is trustworthy, efficient, and usable.
+## Validation
 
-## Where this architecture is headed
+The point wasn't just to build a chatbot. It was to show the answers can be trusted. Every quantitative claim is checked against an independent **Elasticsearch oracle**: ground truth computed straight from the indexes with no LLM in the loop, so the system never grades itself. Across a frozen, pre-registered benchmark (run on the self-hosted `qwq:32b` model for full reproducibility), SOSDash:
 
-The current implementation proves the pattern: a conversational analytics dashboard can be both flexible and trustworthy if it is built around:
+- answered **every question correctly** against the oracle,
+- produced a **verifiable, page-referenced citation for every policy answer** (zero fabricated),
+- made **zero unsupported claims**,
+- and did it **efficiently**, emitting only ~580 output tokens per query (≈3.9 mWh), because it offloads the maths to Elasticsearch instead of computing in generated text. Output (decode) tokens dominate both energy and latency, so generating fewer of them is what keeps the cost down.
 
-- a metadata-driven discovery layer,
-- explicit tool-based reasoning,
-- separate evidence retrieval channels,
-- structured analytics output.
+The benchmark was deliberately small and deep: 6 questions × 3 repeats = 36 runs, with energy attributed from per-token coefficients calibrated on the GPU host (R² = 0.988). The harness logs accuracy, citation integrity, tokens, latency, and energy per run against the oracle and a frozen question set, and it scales to more questions without code changes. Latency is set by the self-hosted 32B model, not the architecture: the agent's own overhead (catalog lookup, query planning, the Elasticsearch calls) is small, so a faster model would bring it down. For reference, a naive same-model baseline given the identical data kept up on simple lookups but fell short on cross-dataset composition, and it produced no verifiable citations. The gains come from the architecture, not the model.
 
-The next step in this line of work would be to make dataset alignment more robust across schema drift, improve policy-document reasoning with better vector re-ranking, and incorporate stronger verification of numeric claims.
+## Limitations & what's next
 
-## Conclusion
+I'd rather name the edges than hide them. SOSDash is a research prototype. It's single-user with no authentication or access control. The benchmark is intentionally small (6 questions, 3 repeats): illustrative and deep rather than a broad leaderboard. End-to-end latency on the self-hosted 32B model is tens of seconds (the architecture is cheap; the local model is the bottleneck). The five FAO datasets are a development corpus, not a scale test.
 
-SOSDash is best understood as a layered retrieval agent for food-system analytics. It does not pretend to be a general-purpose chatbot. Instead, it is a specialized system that answers questions with a clear source path: metadata catalog → dataset index → evidence documents.
+Natural next steps: faster/hosted inference to bring latency to interactive speeds, a larger and broader benchmark, vector re-ranking for sharper policy retrieval, and stronger verification of numeric claims beyond the oracle check.
 
-That is the architectural story I would tell in a blog post, and it is the version I have now aligned with the actual `se4gd-sosdash` source repository.
+## Tech stack
+
+| Area | What I used |
+|---|---|
+| **Languages & core** | Python, pandas, NumPy |
+| **LLM / agents** | JSON-mode **ReAct** orchestrator (provider-agnostic adapter), prompt engineering, structured JSON output, LangChain-compatible adapters; self-hosted **`qwq:32b`** (32B params) via **Ollama** on an RTX 5090 |
+| **Retrieval & RAG** | **Elasticsearch** — Query DSL for the numbers, **dense-vector / k-NN search** for grounding; **embeddings** (`nomic-embed-text`, 768-dim); metadata-driven semantic modeling |
+| **Data engineering** | **Ingestion / ETL pipelines** — FAOSTAT CSVs → per-dataset indexes, policy PDFs → chunked vector index; a **schema-agnostic metadata contract** for plug-in datasets; **multi-source integration & cross-dataset joins** on shared keys |
+| **App & infra** | **Streamlit** (chat + chart + evidence + dataset/document upload), **Docker** / docker-compose, remote-GPU inference over an SSH tunnel |
+| **Evaluation / MLOps** | Custom **benchmark harness** with an independent oracle, accuracy + citation-integrity scoring, and **codecarbon-calibrated energy accounting** (Green-AI cost analysis) |
+
+---
+
+This was my **solo SE4GD master's thesis**: the design, implementation, and evaluation are all my own work, framed here for an engineering audience rather than an academic one. For the deeper design rationale and the full evaluation methodology, the [source repository](https://github.com/sam-a-d/se4gd-sosdash) *(available on request)* and the [live demo](https://sustaindatachat.app.citius.gal/) are the best places to dig in.

@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 430" font-family="'Segoe UI', system-ui, -apple-system, sans-serif">
+  <defs>
+    <marker id="ar" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+
+  <rect x="8" y="8" width="884" height="414" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5"/>
+
+  <!-- Title -->
+  <text x="36" y="42" font-size="20" font-weight="700" fill="#0f172a">Data architecture</text>
+  <text x="36" y="64" font-size="12.5" fill="#64748b">One Elasticsearch store &#183; four layers &#183; three retrieval modes &#183; dataset-agnostic ingestion</text>
+
+  <!-- Column headers -->
+  <text x="125" y="98" font-size="11" font-weight="700" fill="#94a3b8" text-anchor="middle">SOURCES</text>
+  <text x="350" y="98" font-size="11" font-weight="700" fill="#94a3b8" text-anchor="middle">INGESTION / ETL</text>
+
+  <!-- Elasticsearch container -->
+  <rect x="556" y="82" width="320" height="324" rx="12" fill="#f0fdfa" stroke="#14b8a6" stroke-width="1.5"/>
+  <text x="572" y="104" font-size="12" font-weight="700" fill="#0f766e">ELASTICSEARCH</text>
+  <g fill="#005571" transform="translate(840,90) scale(0.62)"><path d="M13.394 0C8.683 0 4.609 2.716 2.644 6.667h15.641a4.77 4.77 0 0 0 3.073-1.11c.446-.375.864-.785 1.247-1.243l.001-.002A11.974 11.974 0 0 0 13.394 0zM1.804 8.889a12.009 12.009 0 0 0 0 6.222h14.7a3.111 3.111 0 1 0 0-6.222zm.84 8.444C4.61 21.283 8.684 24 13.395 24c3.701 0 7.011-1.677 9.212-4.312l-.001-.002a9.958 9.958 0 0 0-1.247-1.243 4.77 4.77 0 0 0-3.073-1.11z"/></g>
+
+  <!-- ===== ROW 1: Data indexes (cy=151) ===== -->
+  <rect x="40" y="124" width="170" height="54" rx="8" fill="#f8fafc" stroke="#cbd5e1"/>
+  <text x="125" y="156" font-size="12" fill="#334155" text-anchor="middle">FAO CSVs</text>
+  <line x1="212" y1="151" x2="244" y2="151" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#ar)"/>
+  <rect x="250" y="124" width="200" height="54" rx="8" fill="#eff6ff" stroke="#93c5fd"/>
+  <text x="350" y="156" font-size="11" font-family="monospace" fill="#1d4ed8" text-anchor="middle">data-ingestion.py</text>
+  <line x1="452" y1="151" x2="566" y2="151" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#ar)"/>
+  <rect x="572" y="124" width="288" height="54" rx="8" fill="#ffffff" stroke="#5eead4" stroke-width="1.5"/>
+  <text x="586" y="148" font-size="12.5" font-weight="700" fill="#0f766e">Data indexes</text>
+  <text x="586" y="166" font-size="10" fill="#64748b">structured &#183; Query DSL + aggregation &#183; 5 datasets</text>
+
+  <!-- ===== ROW 2: L1 catalog (cy=223) ===== -->
+  <rect x="40" y="196" width="170" height="54" rx="8" fill="#f8fafc" stroke="#cbd5e1"/>
+  <text x="125" y="221" font-size="12" fill="#334155" text-anchor="middle">Dataset metadata</text>
+  <text x="125" y="237" font-size="10" fill="#94a3b8" text-anchor="middle">(MVM contract)</text>
+  <line x1="212" y1="223" x2="244" y2="223" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#ar)"/>
+  <rect x="250" y="196" width="200" height="54" rx="8" fill="#eff6ff" stroke="#93c5fd"/>
+  <text x="350" y="228" font-size="11" font-family="monospace" fill="#1d4ed8" text-anchor="middle">ingest-metadata-l1.py</text>
+  <line x1="452" y1="223" x2="566" y2="223" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#ar)"/>
+  <rect x="572" y="196" width="288" height="54" rx="8" fill="#ffffff" stroke="#5eead4" stroke-width="1.5"/>
+  <text x="586" y="220" font-size="12.5" font-weight="700" fill="#0f766e">L1 &#183; Metadata catalog</text>
+  <text x="586" y="238" font-size="10" fill="#64748b">lexical &#183; dataset discovery</text>
+
+  <!-- ===== ROW 3: L2 vectors (cy=295) ===== -->
+  <rect x="40" y="268" width="170" height="54" rx="8" fill="#f8fafc" stroke="#cbd5e1"/>
+  <text x="125" y="300" font-size="12" fill="#334155" text-anchor="middle">Methodology notes</text>
+  <line x1="212" y1="295" x2="244" y2="295" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#ar)"/>
+  <rect x="250" y="268" width="200" height="54" rx="8" fill="#eff6ff" stroke="#93c5fd"/>
+  <text x="350" y="300" font-size="11" font-family="monospace" fill="#1d4ed8" text-anchor="middle">ingest-metadata-l2.py</text>
+  <line x1="452" y1="295" x2="566" y2="295" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#ar)"/>
+  <rect x="572" y="268" width="288" height="54" rx="8" fill="#ffffff" stroke="#5eead4" stroke-width="1.5"/>
+  <text x="586" y="292" font-size="12.5" font-weight="700" fill="#0f766e">L2 &#183; Methodology vectors</text>
+  <text x="586" y="310" font-size="10" fill="#64748b">dense-vector / kNN &#183; ~300 chunks</text>
+
+  <!-- ===== ROW 4: L3 vectors (cy=367) ===== -->
+  <rect x="40" y="340" width="170" height="54" rx="8" fill="#f8fafc" stroke="#cbd5e1"/>
+  <text x="125" y="372" font-size="12" fill="#334155" text-anchor="middle">Policy PDFs</text>
+  <line x1="212" y1="367" x2="244" y2="367" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#ar)"/>
+  <rect x="250" y="340" width="200" height="54" rx="8" fill="#eff6ff" stroke="#93c5fd"/>
+  <text x="350" y="365" font-size="11" font-family="monospace" fill="#1d4ed8" text-anchor="middle">chunk &#8594; embed</text>
+  <text x="350" y="381" font-size="9.5" fill="#3b82f6" text-anchor="middle">nomic-embed-text &#183; 768-d</text>
+  <line x1="452" y1="367" x2="566" y2="367" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#ar)"/>
+  <rect x="572" y="340" width="288" height="54" rx="8" fill="#ffffff" stroke="#5eead4" stroke-width="1.5"/>
+  <text x="586" y="364" font-size="12.5" font-weight="700" fill="#0f766e">L3 &#183; Policy vectors</text>
+  <text x="586" y="382" font-size="10" fill="#64748b">dense-vector / kNN &#183; ~169 chunks</text>
+</svg>

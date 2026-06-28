@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1180" font-family="'Segoe UI', system-ui, -apple-system, sans-serif">
+  <defs>
+    <marker id="dn" markerWidth="10" markerHeight="10" refX="5" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M1,1 L9,1 L5,7 Z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+
+  <rect x="8" y="8" width="884" height="1164" rx="18" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5"/>
+
+  <!-- Title -->
+  <text x="40" y="48" font-size="22" font-weight="700" fill="#0f172a">How one question flows through SOSDash</text>
+  <text x="40" y="74" font-size="13.5" font-style="italic" fill="#475569">"What is the pesticide usage in Spain from 2015 onwards? Explain the trend."</text>
+
+  <!-- Legend -->
+  <circle cx="46" cy="98" r="6" fill="#2563eb"/>
+  <text x="58" y="102" font-size="11.5" fill="#475569">Agent (LLM)</text>
+  <circle cx="172" cy="98" r="6" fill="#0d9488"/>
+  <text x="184" y="102" font-size="11.5" fill="#475569">Elasticsearch retrieval</text>
+  <circle cx="362" cy="98" r="6" fill="#16a34a"/>
+  <text x="374" y="102" font-size="11.5" fill="#475569">Front-end</text>
+
+  <!-- ============ STEP 1 (blue) T=120 ============ -->
+  <rect x="60" y="120" width="780" height="104" rx="10" fill="#ffffff" stroke="#e5e7eb" stroke-width="1.5"/>
+  <rect x="60" y="120" width="6" height="104" fill="#2563eb"/>
+  <circle cx="92" cy="150" r="16" fill="#2563eb"/>
+  <text x="92" y="155" font-size="15" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+  <text x="124" y="146" font-size="15" font-weight="700" fill="#0f172a">Agent receives the question</text>
+  <text x="124" y="166" font-size="12" fill="#64748b">Orchestrator &#183; JSON-mode ReAct loop</text>
+  <rect x="636" y="134" width="188" height="26" rx="13" fill="#eff6ff"/>
+  <text x="730" y="151" font-size="11" font-weight="700" fill="#1d4ed8" text-anchor="middle">LLM agent</text>
+  <rect x="120" y="176" width="708" height="36" rx="6" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="132" y="199" font-size="11.5" fill="#334155">Plans under a "search before you answer" rule &#8212; find the right dataset first, never guess a number.</text>
+  <line x1="92" y1="224" x2="92" y2="248" stroke="#94a3b8" stroke-width="2" marker-end="url(#dn)"/>
+
+  <!-- ============ STEP 2 (teal) T=250 ============ -->
+  <rect x="60" y="250" width="780" height="104" rx="10" fill="#ffffff" stroke="#e5e7eb" stroke-width="1.5"/>
+  <rect x="60" y="250" width="6" height="104" fill="#0d9488"/>
+  <circle cx="92" cy="280" r="16" fill="#0d9488"/>
+  <text x="92" y="285" font-size="15" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+  <text x="124" y="276" font-size="15" font-weight="700" fill="#0f172a">Discover the dataset &#8212; CatalogSearch</text>
+  <text x="124" y="296" font-size="12" fill="#64748b">L1 &#183; Metadata Catalog</text>
+  <rect x="636" y="264" width="188" height="26" rx="13" fill="#f0fdfa"/>
+  <text x="730" y="281" font-size="11" font-weight="700" fill="#0f766e" text-anchor="middle">Elasticsearch &#183; lexical</text>
+  <rect x="120" y="306" width="708" height="36" rx="6" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="132" y="329" font-size="11.5" fill="#334155">&#8594; matched dataset &#8220;pesticide_usage&#8221; &#183; anchors: area / year / item &#183; required filter element = &#8220;Agricultural Use&#8221;</text>
+  <line x1="92" y1="354" x2="92" y2="378" stroke="#94a3b8" stroke-width="2" marker-end="url(#dn)"/>
+
+  <!-- ============ STEP 3 (blue) T=380 ============ -->
+  <rect x="60" y="380" width="780" height="104" rx="10" fill="#ffffff" stroke="#e5e7eb" stroke-width="1.5"/>
+  <rect x="60" y="380" width="6" height="104" fill="#2563eb"/>
+  <circle cx="92" cy="410" r="16" fill="#2563eb"/>
+  <text x="92" y="415" font-size="15" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+  <text x="124" y="406" font-size="15" font-weight="700" fill="#0f172a">Build a structured query plan</text>
+  <text x="124" y="426" font-size="12" fill="#64748b">Orchestrator &#183; LLM reasoning</text>
+  <rect x="636" y="394" width="188" height="26" rx="13" fill="#eff6ff"/>
+  <text x="730" y="411" font-size="11" font-weight="700" fill="#1d4ed8" text-anchor="middle">&#8594; ES Query DSL</text>
+  <rect x="120" y="436" width="708" height="36" rx="6" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="132" y="459" font-size="11.5" fill="#334155">filters {area: Spain &#8594; M49 724, item: Pesticides (Total)} &#183; year &#8805; 2015 &#183; sum(value) group_by year</text>
+  <line x1="92" y1="484" x2="92" y2="508" stroke="#94a3b8" stroke-width="2" marker-end="url(#dn)"/>
+
+  <!-- ============ STEP 4 (teal) T=510 ============ -->
+  <rect x="60" y="510" width="780" height="104" rx="10" fill="#ffffff" stroke="#e5e7eb" stroke-width="1.5"/>
+  <rect x="60" y="510" width="6" height="104" fill="#0d9488"/>
+  <circle cx="92" cy="540" r="16" fill="#0d9488"/>
+  <text x="92" y="545" font-size="15" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+  <text x="124" y="536" font-size="15" font-weight="700" fill="#0f172a">Fetch the numbers &#8212; DataFetcher</text>
+  <text x="124" y="556" font-size="12" fill="#64748b">pesticide_usage data index</text>
+  <rect x="636" y="524" width="188" height="26" rx="13" fill="#f0fdfa"/>
+  <text x="730" y="541" font-size="11" font-weight="700" fill="#0f766e" text-anchor="middle">Elasticsearch &#183; Query DSL</text>
+  <rect x="120" y="566" width="708" height="36" rx="6" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="132" y="589" font-size="11.5" fill="#334155">&#8594; 9 yearly values (2015&#8211;2023). Aggregation + total-row guard run in-engine &#8212; 0 tokens spent on math.</text>
+  <line x1="92" y1="614" x2="92" y2="638" stroke="#94a3b8" stroke-width="2" marker-end="url(#dn)"/>
+
+  <!-- ============ STEP 5 (teal) T=640 ============ -->
+  <rect x="60" y="640" width="780" height="104" rx="10" fill="#ffffff" stroke="#e5e7eb" stroke-width="1.5"/>
+  <rect x="60" y="640" width="6" height="104" fill="#0d9488"/>
+  <circle cx="92" cy="670" r="16" fill="#0d9488"/>
+  <text x="92" y="675" font-size="15" font-weight="700" fill="#ffffff" text-anchor="middle">5</text>
+  <text x="124" y="666" font-size="15" font-weight="700" fill="#0f172a">Ground the explanation &#8212; PolicyLookup</text>
+  <text x="124" y="686" font-size="12" fill="#64748b">L3 &#183; Policy Vectors</text>
+  <rect x="636" y="654" width="188" height="26" rx="13" fill="#f0fdfa"/>
+  <text x="730" y="671" font-size="11" font-weight="700" fill="#0f766e" text-anchor="middle">kNN &#183; embeddings</text>
+  <rect x="120" y="696" width="708" height="36" rx="6" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="132" y="719" font-size="11.5" fill="#334155">&#8594; retrieved 3 excerpts &#8212; EU Biodiversity Strategy (p.7) &amp; Farm-to-Fork: cut pesticide use &amp; risk 50% by 2030.</text>
+  <line x1="92" y1="744" x2="92" y2="768" stroke="#94a3b8" stroke-width="2" marker-end="url(#dn)"/>
+
+  <!-- ============ STEP 6 (blue) T=770 ============ -->
+  <rect x="60" y="770" width="780" height="104" rx="10" fill="#ffffff" stroke="#e5e7eb" stroke-width="1.5"/>
+  <rect x="60" y="770" width="6" height="104" fill="#2563eb"/>
+  <circle cx="92" cy="800" r="16" fill="#2563eb"/>
+  <text x="92" y="805" font-size="15" font-weight="700" fill="#ffffff" text-anchor="middle">6</text>
+  <text x="124" y="796" font-size="15" font-weight="700" fill="#0f172a">Compose the answer</text>
+  <text x="124" y="816" font-size="12" fill="#64748b">Orchestrator &#183; structured JSON (Form A)</text>
+  <rect x="636" y="784" width="188" height="26" rx="13" fill="#eff6ff"/>
+  <text x="730" y="801" font-size="11" font-weight="700" fill="#1d4ed8" text-anchor="middle">LLM agent</text>
+  <rect x="120" y="826" width="708" height="36" rx="6" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="132" y="849" font-size="11.5" fill="#334155">summary + viz spec {line &#183; x=year &#183; y=value} + data[] + retrieval-tied citation + derivation trace</text>
+  <line x1="92" y1="874" x2="92" y2="898" stroke="#94a3b8" stroke-width="2" marker-end="url(#dn)"/>
+
+  <!-- ============ STEP 7 (green) T=900 ============ -->
+  <rect x="60" y="900" width="780" height="104" rx="10" fill="#ffffff" stroke="#e5e7eb" stroke-width="1.5"/>
+  <rect x="60" y="900" width="6" height="104" fill="#16a34a"/>
+  <circle cx="92" cy="930" r="16" fill="#16a34a"/>
+  <text x="92" y="935" font-size="15" font-weight="700" fill="#ffffff" text-anchor="middle">7</text>
+  <text x="124" y="926" font-size="15" font-weight="700" fill="#0f172a">Render</text>
+  <text x="124" y="946" font-size="12" fill="#64748b">Front-end</text>
+  <rect x="636" y="914" width="188" height="26" rx="13" fill="#ecfdf5"/>
+  <text x="730" y="931" font-size="11" font-weight="700" fill="#15803d" text-anchor="middle">Streamlit</text>
+  <rect x="120" y="956" width="708" height="36" rx="6" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="132" y="979" font-size="11.5" fill="#334155">Line chart + "How this answer was derived" trace + source-cited policy evidence panel.</text>
+  <line x1="92" y1="1004" x2="92" y2="1028" stroke="#94a3b8" stroke-width="2" marker-end="url(#dn)"/>
+
+  <!-- ============ ANSWER BANNER ============ -->
+  <rect x="60" y="1030" width="780" height="104" rx="10" fill="#ecfdf5" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="84" y="1058" font-size="14" font-weight="700" fill="#15803d">&#10003; Answer</text>
+  <text x="84" y="1082" font-size="12.5" fill="#166534">Pesticide use in Spain fell from 77,217 t (2015) to 52,907 t (2023), with a sharp drop from 2022 &#8212;</text>
+  <text x="84" y="1102" font-size="12.5" fill="#166534">consistent with the EU&#8217;s 50%-by-2030 pesticide target, cited from the EU Biodiversity Strategy (p.7)</text>
+  <text x="84" y="1122" font-size="12.5" fill="#166534">and Farm-to-Fork. Every number and quote is backed by a real, page-referenced source.</text>
+</svg>
