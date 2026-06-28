@@ -15,13 +15,16 @@ Early in the SOSDash research project, the core design problem became clear: foo
 
 This post walks through the architecture behind that design, explains the reasoning that guided it, and shows how the prototype turns a query into a verified, evidence-backed response.
 
-## The research motivation
+## What SOSDash actually delivers
 
-The SOSDash prototype is not just another chatbot. It is a research artifact from the EU SOSFood project, and the thesis question was precise: how do you build a conversational dashboard that is both usable and trustworthy for food-system analytics?
+SOSDash is designed for people who need answers they can trust, not just interesting prose. It takes a question like "What happened to pesticide use in Spain between 2015 and 2020?" and delivers:
 
-Traditional dashboards expose numbers and graphs, but they rarely connect those numbers to the policy context that makes them meaningful. Conversational agents can close that gap, but only if they avoid the familiar failure mode of LLMs: inventing plausible-sounding results.
+- a chart-ready analytics result,
+- the exact dataset that provided the numbers,
+- an explanation grounded in methodology and policy evidence,
+- and a transparent path showing how the answer was assembled.
 
-SOSDash addresses this by treating the LLM as a reasoning partner, not a source of facts. The system is designed around discovery and evidence, with the model constrained to act through a small set of tools.
+That means the system is not only faster than manual dashboard exploration; it is also safer for decision-making. When the application is food-system analytics, numbers without context can mislead. SOSDash reduces that risk by making both the data and the evidence explicit.
 
 ## The architecture in one sentence
 
@@ -114,23 +117,23 @@ The prototype makes the LLM emit structured actions. The result is a cleaner con
 
 ### Make dataset registration explicit
 
-The upload flow in `frontend/pages/upload_dataset.py` is a research feature as much as a product feature. Users upload a CSV, generate a metadata draft, review the inferred anchors, and then register it. This is where the system preserves its dataset-agnostic guarantees.
+The upload flow is both a product feature and a design safeguard. Users upload a CSV, generate a metadata draft, review the inferred anchors, and then register it. This is where the system preserves its dataset-agnostic guarantees.
 
 ### Guard hierarchical totals automatically
 
 Many food-system datasets contain both totals and breakdown rows. The metadata contract includes an optional hierarchy field so the system can automatically enforce a total-row filter during aggregation, preventing double-counting.
 
-## Research evaluation and benchmark design
+## Reliability and benchmark design
 
-The source repository is built with evaluation in mind. A technical benchmark compares the grounded SOSDash pipeline against a naive same-LLM baseline that has no metadata discovery or citation layer.
+SOSDash was built with reliability in mind. The prototype is benchmarked against a naive baseline that simply uses the same language model without metadata discovery or evidence citation.
 
-Benchmark categories include:
+The benchmark focuses on the kinds of queries that matter in practice:
 
-- single-dataset trend queries,
-- cross-dataset composition queries,
-- evidence-grounded explanation queries.
+- single-dataset trend questions,
+- cross-dataset composition questions,
+- explanation questions that require policy evidence.
 
-The evaluation harness measures not only accuracy, but also citation integrity, latency, token use, and energy efficiency. That makes it a strong research artifact for a master's thesis rather than a product demo.
+The evaluation measures practical outcomes: answer accuracy, citation integrity, latency, token efficiency, and energy usage. In other words, it is not just testing whether the system can respond; it is testing whether the response is trustworthy, efficient, and usable.
 
 ## Where this architecture is headed
 

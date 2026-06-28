@@ -14,9 +14,9 @@ timezone: Europe/Amsterdam
 # jekyll-seo-tag settings › https://github.com/jekyll/jekyll-seo-tag/blob/master/docs/usage.md
 # ↓ --------------------------
 
-title: SOSDash: Agentic AI Based Trustworthy Analytics Dashboard # the main title
+title: Abdus Samad
 
-tagline: An AI Agent that never hallucinates  # it will display as the subtitle
+tagline: Data/AI/Software Engineer 
 
 description: >- # used by seo meta and the atom feed
   A minimal, responsive and feature-rich Jekyll theme for technical writing.
